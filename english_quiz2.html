@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>英語クイズ（選択式）</title>
+  <style>
+    :root{font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'メイリオ', Meiryo, Helvetica, Arial, sans-serif}
+    body{margin:0;padding:18px;background:#f7f9f9;color:#1b1b1b}
+    .card{background:#fff;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,0.06);padding:16px;margin-bottom:14px}
+    h1{font-size:20px;margin:0 0 10px}
+    p.meta{margin:0 0 12px;color:#666;font-size:13px}
+    .question{font-weight:600;margin-bottom:8px}
+    .choices{display:flex;flex-direction:column;gap:8px}
+    label.choice{display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;border:1px solid #eee}
+    input[type=radio]{accent-color:#2a9d8f}
+    .result{margin-top:10px;padding:10px;border-radius:8px;font-weight:600}
+    .correct{background:#ecffef;border:1px solid #9ef0b8;color:#146a2a}
+    .wrong{background:#fff2f2;border:1px solid #ffb3b3;color:#8a1818}
+    .explain{font-weight:500;margin-top:6px;color:#333}
+    .footer{font-size:13px;color:#666;text-align:center;margin-top:18px}
+    @media (prefers-color-scheme: dark){body{background:#0b0f10;color:#e6eef0}.card{background:#071014;box-shadow:none;border:1px solid rgba(255,255,255,0.04)}
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>スマホで解ける英語クイズ</h1>
+    <p class="meta">選択肢をタップすると正誤がすぐに表示され、正しいときは短い説明が出ます（中学1年生向け）。</p>
+  </div>
+
+  <div id="quiz"></div>
+
+  <div class="footer">作成者: ChatGPT — タップで答えを選んでください</div>
+
+<script>
+const data = [
+  {
+    id:10,
+    q: `A : Who makes dinner on Sundays?
+B : My father (    ).`,
+    choices: ["a. do","b. does","c. is","d. am"],
+    answer: "b",
+    explain: "主語が三人称単数（my father）なので、動詞は's'がついた形（does）を使います。"
+  },
+  {
+    id:11,
+    q: `A : (    ) is Mr. Yamada?
+B : He's in the library.`,
+    choices: ["a. Who","b. Whose","c. When","d. Where"],
+    answer: "d",
+    explain: "場所を尋ねる質問だから 'Where' が正しいです。"
+  },
+  {
+    id:12,
+    q: `A : (    ) does school start?
+B : It starts in April.`,
+    choices: ["a. When","b. What","c. Where","d. Whose"],
+    answer: "a",
+    explain: "『いつ始まるか』を尋ねているので 'When' を使います。"
+  },
+  {
+    id:13,
+    q: `Mark is (    ) a bath now.`,
+    choices: ["a. take","b. took","c. taking","d. takes"],
+    answer: "c",
+    explain: "'now' があるので今起きている動作、進行形（is taking）が正しいです。"
+  },
+  {
+    id:14,
+    q: `Nick (    ) a wallet at the mall yesterday.`,
+    choices: ["a. buy","b. buys","c. buying","d. bought"],
+    answer: "d",
+    explain: "'yesterday' は過去を表すので過去形（bought）を使います。"
+  },
+  {
+    id:15,
+    q: `A : Where (    ) you at ten this morning?
+B : I was at the museum.`,
+    choices: ["a. is","b. are","c. was","d. were"],
+    answer: "d",
+    explain: "過去の時（this morning）の 'you' に対して複数/2人称の過去形は 'were' です。"
+  },
+  {
+    id:16,
+    q: `Amy will (    ) her cousin tomorrow.`,
+    choices: ["a. visit","b. visits","c. visiting","d. visited"],
+    answer: "a",
+    explain: "助動詞 'will' の後には動詞の原形（visit）を使います。"
+  },
+  {
+    id:17,
+    q: `(    ) you have time tomorrow, let's go out together.`,
+    choices: ["a. After","b. But","c. If","d. So"],
+    answer: "c",
+    explain: "『もし〜なら』という条件を表す 'If' が適切です。"
+  }
+];
+
+function createQuestion(item){
+  const wrap = document.createElement('div');
+  wrap.className = 'card';
+  const qElem = document.createElement('div');
+  qElem.className = 'question';
+  qElem.textContent = `(${item.id}) ` + item.q;
+  wrap.appendChild(qElem);
+
+  const choices = document.createElement('div');
+  choices.className = 'choices';
+  item.choices.forEach((text, idx)=>{
+    const letter = String.fromCharCode(97+idx); 
+    const id = `q${item.id}_${letter}`;
+    const label = document.createElement('label');
+    label.className = 'choice';
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = `q${item.id}`;
+    radio.value = letter;
+    radio.id = id;
+    radio.addEventListener('change', ()=> onAnswer(item, letter, wrap));
+    const span = document.createElement('span');
+    span.textContent = text;
+    label.appendChild(radio);
+    label.appendChild(span);
+    choices.appendChild(label);
+  });
+  wrap.appendChild(choices);
+
+  const result = document.createElement('div');
+  result.className = 'result';
+  result.style.display = 'none';
+  wrap.appendChild(result);
+
+  return wrap;
+}
+
+function onAnswer(item, picked, container){
+  const res = container.querySelector('.result');
+  res.style.display = 'block';
+  if(picked === item.answer){
+    res.className = 'result correct';
+    res.innerHTML = '正解！<div class="explain">' + item.explain + '</div>';
+  } else {
+    const idx = item.answer.charCodeAt(0) - 97;
+    const correctText = item.choices[idx];
+    res.className = 'result wrong';
+    res.innerHTML = '不正解。正しい答えは ' + correctText + ' です。<div class="explain">' + item.explain + '</div>';
+  }
+}
+
+const quizDiv = document.getElementById('quiz');
+data.forEach(it=> quizDiv.appendChild(createQuestion(it)));
+</script>
+</body>
+</html>
